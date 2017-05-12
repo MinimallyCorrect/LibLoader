@@ -76,21 +76,22 @@ public class LibLoader {
 					continue;
 				val manifest = new Manifest(zis);
 				int i = 0;
+				val main = manifest.getMainAttributes();
 				String group;
-				while ((group = (String) manifest.getMainAttributes().get("LibLoader-group" + i)) != null) {
-					val name = (String) manifest.getMainAttributes().get("LibLoader-name" + i);
-					val classifier = (String) manifest.getMainAttributes().get("LibLoader-classifier" + i);
-					val version = (String) manifest.getMainAttributes().get("LibLoader-version" + i);
-					val sha512hash = (String) manifest.getMainAttributes().get("LibLoader-sha512hash" + i);
+				while ((group = main.getValue("LibLoader-group" + i)) != null) {
+					val name = main.getValue("LibLoader-name" + i);
+					val classifier = main.getValue("LibLoader-classifier" + i);
+					val version = main.getValue("LibLoader-version" + i);
+					val sha512hash = main.getValue("LibLoader-sha512hash" + i);
 
 					// indicates requirement but not provided here. Should be provided by one of the libs we depend on
 					// TODO: can check that
 					if (sha512hash == null)
 						continue;
 
-					val url = (String) manifest.getMainAttributes().get("LibLoader-url" + i);
-					val file = (String) manifest.getMainAttributes().get("LibLoader-file" + i);
-					val buildTime = (String) manifest.getMainAttributes().get("LibLoader-buildTime" + i);
+					val url = main.getValue("LibLoader-url" + i);
+					val file = main.getValue("LibLoader-file" + i);
+					val buildTime = main.getValue("LibLoader-buildTime" + i);
 					val lib = new Library(group, name, classifier, Version.of(version), sha512hash, url, file, buildTime, source);
 					//noinspection SynchronizationOnLocalVariableOrMethodParameter
 					synchronized (libraries) {
