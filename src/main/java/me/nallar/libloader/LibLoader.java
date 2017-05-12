@@ -41,7 +41,7 @@ public class LibLoader {
 		if (files == null)
 			throw new FileNotFoundException(loadFrom.getAbsolutePath());
 
-		List<File> searchFiles = new ArrayList<>(Arrays.asList(files));
+		List<File> searchFiles = Collections.synchronizedList(new ArrayList<>(Arrays.asList(files)));
 
 		val newLibs = new ConcurrentHashMap<String, Library>();
 		val allLibs = new ConcurrentHashMap<String, Library>();
@@ -114,6 +114,8 @@ public class LibLoader {
 					}
 					i++;
 				}
+				log.info("Parsed manifest, entry count " + i);
+				return;
 			}
 		}
 	}
