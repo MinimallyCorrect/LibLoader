@@ -1,25 +1,31 @@
 package me.nallar.libloader;
 
 import lombok.*;
+import sun.misc.URLClassPath;
 
 import java.io.*;
 import java.net.*;
 import java.nio.file.*;
+import java.security.*;
 import java.util.*;
 import java.util.concurrent.*;
 import java.util.jar.*;
 import java.util.zip.*;
 
+@SuppressWarnings("WeakerAccess")
 public class LibLoader {
+	static {
+		val mods = System.getProperty("LibLoader.modsFolder", "mods/");
+		val libraries = System.getProperty("LibLoader.librariesFolder", "libraries/");
+		loadLibraries(new File(mods), new File(libraries));
+	}
+
 	/**
 	 * Must be called before using any libraries loaded by lib loader
-	 *
+	 * <p>
 	 * Recommended to call in a static { } block at the top of a CoreMod
 	 */
-	public static void init() { }
-
-	static {
-		loadLibraries(new File("mods/"), new File("libraries/"));
+	public static void init() {
 	}
 
 	@SneakyThrows
@@ -28,117 +34,157 @@ public class LibLoader {
 		if (files == null)
 			throw new FileNotFoundException(loadFrom.getAbsolutePath());
 
-		val libraries = new ConcurrentHashMap<String, List<Library>>();
-		Arrays.asList(files).parallelStream().forEach((it) -> {
-			if (!it.getName().toLowerCase().endsWith(".jar")) {
-				return;
-			}
-			try (val zis = new ZipInputStream(new FileInputStream(it))) {
-				ZipEntry e;
-				while ((e = zis.getNextEntry()) != null) {
-					if (!e.getName().equals("META-INF/MANIFEST.MF"))
-						continue;
-					val manifest = new Manifest(zis);
-					int i = 0;
-					String group;
-					while ((group = (String) manifest.getMainAttributes().get("LibLoader-group" + i)) != null) {
-						val name = (String) manifest.getMainAttributes().get("LibLoader-name" + i);
-						val artifact = (String) manifest.getMainAttributes().get("LibLoader-artifact" + i);
-						val version = (String) manifest.getMainAttributes().get("LibLoader-version" + i);
-						val url = (String) manifest.getMainAttributes().get("LibLoader-url" + i);
-						val file = (String) manifest.getMainAttributes().get("LibLoader-file" + i);
-						val buildTime = (String) manifest.getMainAttributes().get("LibLoader-buildTime" + i);
-						val lib = new Library(group, name, artifact, Version.of(version), url, file, buildTime, it);
-						libraries.computeIfAbsent(lib.getKey(), unused -> new ArrayList<>()).add(lib);
-						i++;
-					}
-				}
-			} catch (IOException e) {
-				throw new IOError(e);
-			}
-		});
+		List<File> searchFiles = new ArrayList<>(Arrays.asList(files));
 
-		val urls = Collections.synchronizedList(new ArrayList<>(libraries.size()));
-		libraries.values().parallelStream().forEach(lib -> {
-			val newest = Collections.max(lib, Comparator.comparing(a -> a.version));
-			urls.add(newest.save(extractionDir));
-		});
+		val newLibs = new ConcurrentHashMap<String, Library>();
+		val allLibs = new ConcurrentHashMap<String, Library>();
+		while (true) {
+			newLibs.clear();
+			boolean[] holder = {false};
+			searchFiles.parallelStream().forEach((it) -> {
+				if (!it.getName().toLowerCase().endsWith(".jar")) {
+					return;
+				}
+				holder[0] |= loadLibraries(it, allLibs, newLibs);
+			});
+
+			if (!holder[0])
+				break;
+
+			searchFiles.clear();
+			newLibs.values().parallelStream().forEach(lib -> searchFiles.add(lib.save(extractionDir)));
+		}
+
+		Map<String, URL> hashToUrl = new ConcurrentHashMap<>();
+		allLibs.values().parallelStream().forEach(lib -> hashToUrl.put(lib.sha512hash, lib.getUrl(extractionDir)));
+
+		val classLoader = (URLClassLoader) LibLoader.class.getClassLoader();
+		val ucpField = URLClassLoader.class.getDeclaredField("ucp");
+		ucpField.setAccessible(true);
+		val urls = new ArrayList<URL>(hashToUrl.values());
+		urls.addAll(Arrays.asList(classLoader.getURLs()));
+		ucpField.set(classLoader, new URLClassPath(urls.toArray(new URL[0])));
+	}
+
+	@SneakyThrows
+	private static boolean loadLibraries(File source, ConcurrentHashMap<String, Library> libraries, ConcurrentHashMap<String, Library> libraries2) {
+		boolean changed = false;
+		try (val zis = new ZipInputStream(new FileInputStream(source))) {
+			ZipEntry e;
+			while ((e = zis.getNextEntry()) != null) {
+				if (!e.getName().equals("META-INF/MANIFEST.MF"))
+					continue;
+				val manifest = new Manifest(zis);
+				int i = 0;
+				String group;
+				while ((group = (String) manifest.getMainAttributes().get("LibLoader-group" + i)) != null) {
+					val name = (String) manifest.getMainAttributes().get("LibLoader-name" + i);
+					val classifier = (String) manifest.getMainAttributes().get("LibLoader-classifier" + i);
+					val version = (String) manifest.getMainAttributes().get("LibLoader-version" + i);
+					val sha512hash = (String) manifest.getMainAttributes().get("LibLoader-sha512hash" + i);
+
+					// indicates requirement but not provided here. Should be provided by one of the libs we depend on
+					if (sha512hash == null)
+						continue;
+
+					val url = (String) manifest.getMainAttributes().get("LibLoader-url" + i);
+					val file = (String) manifest.getMainAttributes().get("LibLoader-file" + i);
+					val buildTime = (String) manifest.getMainAttributes().get("LibLoader-buildTime" + i);
+					val lib = new Library(group, name, classifier, Version.of(version), sha512hash, url, file, buildTime, source);
+					//noinspection SynchronizationOnLocalVariableOrMethodParameter
+					synchronized (libraries) {
+						val oldLib = libraries.get(lib.getKey());
+						if (oldLib == null || lib.compareTo(oldLib) > 0) {
+							libraries.put(lib.getKey(), lib);
+							libraries2.put(lib.getKey(), lib);
+							changed = true;
+						}
+					}
+					i++;
+				}
+			}
+		}
+		return changed;
 	}
 
 	@AllArgsConstructor
 	@EqualsAndHashCode
 	@ToString
-	static class Library implements Comparable<Library>, Serializable {
-		private static final long serialVersionUID = 0;
+	static class Library implements Comparable<Library> {
 		final String group;
 		final String name;
-		final String artifact;
+		final String classifier;
 		final Version version;
+		final String sha512hash;
 		final String url;
 		final String file;
 		final String buildTime;
 		transient final File source;
 
-		String getSimplePath() {
-			return group.replace('.', '/') + '/' + name + '-' + artifact;
+		@SneakyThrows
+		private static String sha512(File f) {
+			val digest = MessageDigest.getInstance("SHA-512");
+			byte[] hash = digest.digest(Files.readAllBytes(f.toPath()));
+
+			val hexString = new StringBuilder();
+			//noinspection ForLoopReplaceableByForEach
+			for (int i = 0; i < hash.length; i++) {
+				String hex = Integer.toHexString(0xff & hash[i]);
+				if (hex.length() == 1) hexString.append('0');
+				hexString.append(hex);
+			}
+
+			return hexString.toString();
 		}
 
-		String getMavenPath() {
-			return group.replace('.', '/') + '/' + name + '-' + version + '/' +
-				name + '-' + version + '-' + (artifact == null ? "" : '-' + artifact);
+		String getPath() {
+			return group.replace('.', '/') + '/' + name + '-' + version + '-' + sha512hash + '/'
+				+ name + '-' + version + '-' + (classifier == null ? "" : '-' + classifier);
 		}
 
 		String getKey() {
 			return group + '.' + name;
 		}
 
-		private static boolean shouldUpgrade(boolean exists, Version previous, Version now) {
-			// No jar
-			if (!exists)
-				return true;
-
-			// Jar exists, but snapshot/beta
-			if (now.suffixInt() < 0)
-				// If not exact match (different URL or different timestamp) update
-				return now.equals(previous);
-
-			// TODO: checksum validation? can't validate checksums for snapshots as they will change.
-			return false;
+		@SneakyThrows
+		private void validateHash(File jarPath) {
+			if (!jarPath.exists())
+				throw new FileNotFoundException("Couldn't extract/download library " + this);
+			val hash = sha512(jarPath);
+			if (!hash.equals(sha512hash))
+				throw new Error("Wrong hash for library " + this + "\nExpected " + sha512hash + ", got " + hash);
 		}
 
 		@SneakyThrows
-		URL save(File extractionDir) {
-			val path = getMavenPath();
-			val lastPath = new File(extractionDir,  path + ".ll");
-			val jarPath = new File(extractionDir, path + ".jar");
-			Library last = null;
-			try (val ois = new ObjectInputStream(new FileInputStream(lastPath))) {
-				last = (Library) ois.readObject();
-			} catch (Throwable ignored) {
-			}
-			if (!jarPath.exists() || last == null || !last.equals(this)) {
+		File save(File extractionDir) {
+			val jarPath = new File(extractionDir, getPath() + ".jar");
+			if (!jarPath.exists() || !sha512(jarPath).equals(sha512hash)) {
+				//noinspection ResultOfMethodCallIgnored
+				jarPath.getParentFile().mkdirs();
 				if (file != null) {
 					try (val zis = new ZipInputStream(new FileInputStream(source))) {
 						ZipEntry e;
 						while ((e = zis.getNextEntry()) != null) {
 							if (!e.getName().equals(file))
 								continue;
-							Files.copy(zis, jarPath.toPath());
-							break;
+							Files.copy(zis, jarPath.toPath(), StandardCopyOption.REPLACE_EXISTING);
 						}
 					}
 				} else if (url != null) {
-					// TODO: dl from url
-					throw new UnsupportedOperationException("not implemented");
+					Files.copy(new URL(url).openStream(), jarPath.toPath(), StandardCopyOption.REPLACE_EXISTING);
 				} else {
 					throw new Error("No way to acquire dependency: " + this);
 				}
-
-				try (val oos = new ObjectOutputStream(new FileOutputStream(lastPath))) {
-					oos.writeObject(this);
-				}
 			}
-			return jarPath.toURI().toURL();
+
+			validateHash(jarPath);
+
+			return jarPath;
+		}
+
+		@SneakyThrows
+		URL getUrl(File extractionDir) {
+			return new File(extractionDir, getPath() + ".jar").toURI().toURL();
 		}
 
 		@Override
@@ -150,8 +196,7 @@ public class LibLoader {
 		}
 	}
 
-	static class Version implements Comparable<Version>, Serializable {
-		private static final long serialVersionUID = 0;
+	static class Version implements Comparable<Version> {
 		private final int[] parts;
 		private final String suffix;
 
