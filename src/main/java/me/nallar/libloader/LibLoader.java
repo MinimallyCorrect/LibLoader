@@ -2,7 +2,6 @@ package me.nallar.libloader;
 
 import lombok.EqualsAndHashCode;
 import lombok.SneakyThrows;
-import lombok.ToString;
 import lombok.val;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -120,7 +119,6 @@ public class LibLoader {
 	}
 
 	@EqualsAndHashCode
-	@ToString
 	static class Library implements Comparable<Library> {
 		final String group;
 		final String name;
@@ -159,6 +157,14 @@ public class LibLoader {
 			}
 
 			return hexString.toString();
+		}
+
+		@SneakyThrows
+		private static InputStream openStream(URL url) {
+			val con = url.openConnection();
+			con.setConnectTimeout(10000);
+			con.setReadTimeout(10000);
+			return con.getInputStream();
 		}
 
 		String getPath() {
@@ -204,7 +210,7 @@ public class LibLoader {
 					}
 				} else if (url != null) {
 					log.info("Downloading library " + toString() + " from " + url + ". Expected hash: " + sha512hash);
-					Files.copy(new URL(url).openStream(), jarPath.toPath(), StandardCopyOption.REPLACE_EXISTING);
+					Files.copy(openStream(new URL(url)), jarPath.toPath(), StandardCopyOption.REPLACE_EXISTING);
 				} else {
 					throw new Error("No way to acquire dependency: " + this);
 				}
