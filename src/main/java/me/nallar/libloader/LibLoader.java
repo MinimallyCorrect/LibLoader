@@ -196,7 +196,7 @@ public class LibLoader {
 		}
 	}
 
-	public static class Version implements Comparable<Version> {
+	static class Version implements Comparable<Version> {
 		private final int[] parts;
 		private final String suffix;
 
@@ -218,7 +218,7 @@ public class LibLoader {
 			parts = Arrays.stream(version.split("\\.")).mapToInt(Integer::parseInt).toArray();
 		}
 
-		public static Version of(String s) {
+		static Version of(String s) {
 			return new Version(s);
 		}
 
