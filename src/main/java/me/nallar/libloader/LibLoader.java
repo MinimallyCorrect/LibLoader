@@ -1,6 +1,9 @@
 package me.nallar.libloader;
 
-import lombok.*;
+import lombok.EqualsAndHashCode;
+import lombok.SneakyThrows;
+import lombok.ToString;
+import lombok.val;
 import sun.misc.URLClassPath;
 
 import java.io.*;
@@ -14,6 +17,8 @@ import java.util.zip.*;
 
 @SuppressWarnings("WeakerAccess")
 public class LibLoader {
+	private static final boolean DISABLE_VALIDATION = Boolean.parseBoolean(System.getProperty("LibLoader.disableValidation", "false"));
+
 	static {
 		val mods = System.getProperty("LibLoader.modsFolder", "mods/");
 		val libraries = System.getProperty("LibLoader.librariesFolder", "libraries/");
@@ -109,7 +114,6 @@ public class LibLoader {
 		return changed;
 	}
 
-	@AllArgsConstructor
 	@EqualsAndHashCode
 	@ToString
 	static class Library implements Comparable<Library> {
@@ -122,6 +126,19 @@ public class LibLoader {
 		final String file;
 		final String buildTime;
 		transient final File source;
+		transient String calculatedHash = null;
+
+		Library(String group, String name, String classifier, Version version, String sha512hash, String url, String file, String buildTime, File source) {
+			this.group = group;
+			this.name = name;
+			this.classifier = classifier;
+			this.version = version;
+			this.sha512hash = sha512hash;
+			this.url = url;
+			this.file = file;
+			this.buildTime = buildTime;
+			this.source = source;
+		}
 
 		@SneakyThrows
 		private static String sha512(File f) {
@@ -153,14 +170,22 @@ public class LibLoader {
 			if (!jarPath.exists())
 				throw new FileNotFoundException("Couldn't extract/download library " + this);
 			val hash = sha512(jarPath);
-			if (!hash.equals(sha512hash))
-				throw new Error("Wrong hash for library " + this + "\nExpected " + sha512hash + ", got " + hash);
+			calculatedHash = hash;
+
+			if (!hash.equals(sha512hash)) {
+				val error = new Error("Wrong hash for library " + this + "\nExpected " + sha512hash + ", got " + hash);
+				if (DISABLE_VALIDATION) {
+					error.printStackTrace();
+				} else {
+					throw error;
+				}
+			}
 		}
 
 		@SneakyThrows
 		File save(File extractionDir) {
 			val jarPath = new File(extractionDir, getPath() + ".jar");
-			if (!jarPath.exists() || !sha512(jarPath).equals(sha512hash)) {
+			if (!jarPath.exists() || (!DISABLE_VALIDATION && !sha512(jarPath).equals(sha512hash))) {
 				//noinspection ResultOfMethodCallIgnored
 				jarPath.getParentFile().mkdirs();
 				if (file != null) {
