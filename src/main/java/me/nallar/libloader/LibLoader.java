@@ -53,7 +53,6 @@ public class LibLoader {
 				if (!it.getName().toLowerCase().endsWith(".jar")) {
 					return;
 				}
-				log.info("Searching in " + it.getName());
 				loadLibraries(it, allLibs, newLibs);
 			});
 
@@ -85,7 +84,6 @@ public class LibLoader {
 					continue;
 
 				val manifest = new Manifest(zis);
-				log.info("Found manifest " + manifest + " in " + source);
 				int i = 0;
 				val main = manifest.getMainAttributes();
 				String group;
@@ -116,7 +114,6 @@ public class LibLoader {
 					}
 					i++;
 				}
-				log.info("Parsed manifest, entry count " + i);
 				return;
 			}
 		}
