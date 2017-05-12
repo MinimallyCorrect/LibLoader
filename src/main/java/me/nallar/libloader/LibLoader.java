@@ -81,7 +81,9 @@ public class LibLoader {
 			while ((e = zis.getNextEntry()) != null) {
 				if (!e.getName().equals("META-INF/MANIFEST.MF"))
 					continue;
+
 				val manifest = new Manifest(zis);
+				log.info("Found manifest " + manifest + " in " + source);
 				int i = 0;
 				val main = manifest.getMainAttributes();
 				String group;
@@ -208,7 +210,9 @@ public class LibLoader {
 					}
 				} else if (url != null) {
 					log.info("Downloading library " + toString() + " from " + url + ". Expected hash: " + sha512hash);
-					Files.copy(openStream(new URL(url)), jarPath.toPath(), StandardCopyOption.REPLACE_EXISTING);
+					try (val is = openStream(new URL(url))) {
+						Files.copy(is, jarPath.toPath(), StandardCopyOption.REPLACE_EXISTING);
+					}
 				} else {
 					throw new Error("No way to acquire dependency: " + this);
 				}
