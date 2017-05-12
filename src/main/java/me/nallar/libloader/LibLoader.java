@@ -84,6 +84,7 @@ public class LibLoader {
 					val sha512hash = (String) manifest.getMainAttributes().get("LibLoader-sha512hash" + i);
 
 					// indicates requirement but not provided here. Should be provided by one of the libs we depend on
+					// TODO: can check that
 					if (sha512hash == null)
 						continue;
 
