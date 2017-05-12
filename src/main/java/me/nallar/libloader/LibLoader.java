@@ -13,6 +13,7 @@ import java.nio.file.*;
 import java.security.*;
 import java.util.*;
 import java.util.concurrent.*;
+import java.util.concurrent.atomic.*;
 import java.util.jar.*;
 import java.util.zip.*;
 
@@ -20,12 +21,7 @@ import java.util.zip.*;
 public class LibLoader {
 	static final Logger log = LogManager.getLogger("LibLoader");
 	static final boolean DISABLE_VALIDATION = Boolean.parseBoolean(System.getProperty("LibLoader.disableValidation", "false"));
-
-	static {
-		val mods = System.getProperty("LibLoader.modsFolder", "mods/");
-		val libraries = System.getProperty("LibLoader.librariesFolder", "libraries/");
-		loadLibraries(new File(mods), new File(libraries));
-	}
+	static final AtomicBoolean inited = new AtomicBoolean();
 
 	/**
 	 * Must be called before using any libraries loaded by lib loader
@@ -33,6 +29,12 @@ public class LibLoader {
 	 * Recommended to call in a static { } block at the top of a CoreMod
 	 */
 	public static void init() {
+		if (!inited.compareAndSet(false, true))
+			return;
+
+		val mods = System.getProperty("LibLoader.modsFolder", "mods/");
+		val libraries = System.getProperty("LibLoader.librariesFolder", "libraries/");
+		loadLibraries(new File(mods), new File(libraries));
 	}
 
 	@SneakyThrows
@@ -47,13 +49,13 @@ public class LibLoader {
 		val allLibs = new ConcurrentHashMap<String, Library>();
 		while (true) {
 			newLibs.clear();
-			for (File it : searchFiles) {
+			searchFiles.parallelStream().forEach(it -> {
 				if (!it.getName().toLowerCase().endsWith(".jar")) {
 					return;
 				}
 				log.info("Searching in " + it.getName());
 				loadLibraries(it, allLibs, newLibs);
-			}
+			});
 
 			if (newLibs.isEmpty())
 				break;
