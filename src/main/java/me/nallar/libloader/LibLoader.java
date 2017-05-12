@@ -47,13 +47,13 @@ public class LibLoader {
 		val allLibs = new ConcurrentHashMap<String, Library>();
 		while (true) {
 			newLibs.clear();
-			searchFiles.parallelStream().forEach((it) -> {
+			for (File it : searchFiles) {
 				if (!it.getName().toLowerCase().endsWith(".jar")) {
 					return;
 				}
 				log.info("Searching in " + it.getName());
 				loadLibraries(it, allLibs, newLibs);
-			});
+			}
 
 			if (newLibs.isEmpty())
 				break;
