@@ -4,6 +4,8 @@ import lombok.EqualsAndHashCode;
 import lombok.SneakyThrows;
 import lombok.ToString;
 import lombok.val;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import sun.misc.URLClassPath;
 
 import java.io.*;
@@ -17,6 +19,7 @@ import java.util.zip.*;
 
 @SuppressWarnings("WeakerAccess")
 public class LibLoader {
+	private static final Logger log = LogManager.getLogger("LibLoader");
 	private static final boolean DISABLE_VALIDATION = Boolean.parseBoolean(System.getProperty("LibLoader.disableValidation", "false"));
 
 	static {
@@ -50,6 +53,7 @@ public class LibLoader {
 				if (!it.getName().toLowerCase().endsWith(".jar")) {
 					return;
 				}
+				log.info("Searching in " + it.getName());
 				holder[0] |= loadLibraries(it, allLibs, newLibs);
 			});
 
@@ -60,6 +64,7 @@ public class LibLoader {
 			newLibs.values().parallelStream().forEach(lib -> searchFiles.add(lib.save(extractionDir)));
 		}
 
+		log.info("Found libs: " + allLibs);
 		Map<String, URL> hashToUrl = new ConcurrentHashMap<>();
 		allLibs.values().parallelStream().forEach(lib -> hashToUrl.put(lib.sha512hash, lib.getUrl(extractionDir)));
 
