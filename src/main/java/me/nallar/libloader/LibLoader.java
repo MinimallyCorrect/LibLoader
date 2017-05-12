@@ -47,16 +47,15 @@ public class LibLoader {
 		val allLibs = new ConcurrentHashMap<String, Library>();
 		while (true) {
 			newLibs.clear();
-			boolean[] holder = {false};
 			searchFiles.parallelStream().forEach((it) -> {
 				if (!it.getName().toLowerCase().endsWith(".jar")) {
 					return;
 				}
 				log.info("Searching in " + it.getName());
-				holder[0] |= loadLibraries(it, allLibs, newLibs);
+				loadLibraries(it, allLibs, newLibs);
 			});
 
-			if (!holder[0])
+			if (newLibs.isEmpty())
 				break;
 
 			searchFiles.clear();
@@ -76,8 +75,7 @@ public class LibLoader {
 	}
 
 	@SneakyThrows
-	private static boolean loadLibraries(File source, ConcurrentHashMap<String, Library> libraries, ConcurrentHashMap<String, Library> libraries2) {
-		boolean changed = false;
+	private static void loadLibraries(File source, ConcurrentHashMap<String, Library> libraries, ConcurrentHashMap<String, Library> libraries2) {
 		try (val zis = new ZipInputStream(new FileInputStream(source))) {
 			ZipEntry e;
 			while ((e = zis.getNextEntry()) != null) {
@@ -110,14 +108,12 @@ public class LibLoader {
 						if (oldLib == null || lib.compareTo(oldLib) > 0) {
 							libraries.put(lib.getKey(), lib);
 							libraries2.put(lib.getKey(), lib);
-							changed = true;
 						}
 					}
 					i++;
 				}
 			}
 		}
-		return changed;
 	}
 
 	@EqualsAndHashCode
