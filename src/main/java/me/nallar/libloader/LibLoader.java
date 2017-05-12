@@ -18,8 +18,8 @@ import java.util.zip.*;
 
 @SuppressWarnings("WeakerAccess")
 public class LibLoader {
-	private static final Logger log = LogManager.getLogger("LibLoader");
-	private static final boolean DISABLE_VALIDATION = Boolean.parseBoolean(System.getProperty("LibLoader.disableValidation", "false"));
+	static final Logger log = LogManager.getLogger("LibLoader");
+	static final boolean DISABLE_VALIDATION = Boolean.parseBoolean(System.getProperty("LibLoader.disableValidation", "false"));
 
 	static {
 		val mods = System.getProperty("LibLoader.modsFolder", "mods/");
@@ -36,7 +36,7 @@ public class LibLoader {
 	}
 
 	@SneakyThrows
-	private static void loadLibraries(File loadFrom, File extractionDir) {
+	static void loadLibraries(File loadFrom, File extractionDir) {
 		val files = loadFrom.listFiles();
 		if (files == null)
 			throw new FileNotFoundException(loadFrom.getAbsolutePath());
@@ -75,7 +75,7 @@ public class LibLoader {
 	}
 
 	@SneakyThrows
-	private static void loadLibraries(File source, ConcurrentHashMap<String, Library> libraries, ConcurrentHashMap<String, Library> libraries2) {
+	static void loadLibraries(File source, ConcurrentHashMap<String, Library> libraries, ConcurrentHashMap<String, Library> libraries2) {
 		try (val zis = new ZipInputStream(new FileInputStream(source))) {
 			ZipEntry e;
 			while ((e = zis.getNextEntry()) != null) {
@@ -146,7 +146,7 @@ public class LibLoader {
 		}
 
 		@SneakyThrows
-		private static String sha512(File f) {
+		static String sha512(File f) {
 			val digest = MessageDigest.getInstance("SHA-512");
 			byte[] hash = digest.digest(Files.readAllBytes(f.toPath()));
 
@@ -162,7 +162,7 @@ public class LibLoader {
 		}
 
 		@SneakyThrows
-		private static InputStream openStream(URL url) {
+		static InputStream openStream(URL url) {
 			val con = url.openConnection();
 			con.setConnectTimeout(10000);
 			con.setReadTimeout(10000);
@@ -179,7 +179,7 @@ public class LibLoader {
 		}
 
 		@SneakyThrows
-		private void validateHash(File jarPath) {
+		void validateHash(File jarPath) {
 			if (!jarPath.exists())
 				throw new FileNotFoundException("Couldn't extract/download library " + this);
 			val hash = sha512(jarPath);
@@ -245,8 +245,8 @@ public class LibLoader {
 	}
 
 	static class Version implements Comparable<Version> {
-		private final int[] parts;
-		private final String suffix;
+		final int[] parts;
+		final String suffix;
 
 		private Version(String version) {
 			if (version == null)
@@ -301,7 +301,7 @@ public class LibLoader {
 			return a.compareTo(b);
 		}
 
-		private int suffixInt() {
+		int suffixInt() {
 			if (suffix == null)
 				return 0;
 
