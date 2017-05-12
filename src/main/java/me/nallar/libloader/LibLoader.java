@@ -203,6 +203,7 @@ public class LibLoader {
 						}
 					}
 				} else if (url != null) {
+					log.info("Downloading library " + toString() + " from " + url + ". Expected hash: " + sha512hash);
 					Files.copy(new URL(url).openStream(), jarPath.toPath(), StandardCopyOption.REPLACE_EXISTING);
 				} else {
 					throw new Error("No way to acquire dependency: " + this);
@@ -225,6 +226,11 @@ public class LibLoader {
 			if (c != 0)
 				return c;
 			return Long.compare(Long.parseLong(buildTime), Long.parseLong(o.buildTime));
+		}
+
+		@Override
+		public String toString() {
+			return group + '.' + name + (classifier == null ? "" : '-' + classifier) + '-' + version;
 		}
 	}
 
