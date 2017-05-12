@@ -95,8 +95,10 @@ public class LibLoader {
 
 					// indicates requirement but not provided here. Should be provided by one of the libs we depend on
 					// TODO: can check that
-					if (sha512hash == null)
+					if (sha512hash == null) {
+						i++;
 						continue;
+					}
 
 					val url = main.getValue("LibLoader-url" + i);
 					val file = main.getValue("LibLoader-file" + i);
