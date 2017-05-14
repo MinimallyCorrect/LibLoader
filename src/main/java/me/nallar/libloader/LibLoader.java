@@ -238,7 +238,7 @@ public class LibLoader implements IFMLLoadingPlugin {
 		final int[] parts;
 		final String suffix;
 
-		private Version(String version) {
+		Version(String version) {
 			if (version == null)
 				throw new IllegalArgumentException("Version can not be null");
 			version = version.trim();
