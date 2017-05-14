@@ -25,6 +25,7 @@ public class LibLoader implements IFMLLoadingPlugin {
 		init();
 	}
 
+	@SuppressWarnings("WeakerAccess")
 	public static void init() {
 		if (!inited.compareAndSet(false, true))
 			return;
@@ -106,9 +107,9 @@ public class LibLoader implements IFMLLoadingPlugin {
 		boolean update = bestVersion != null && (currentVersion == null || bestVersion.compareTo(currentVersion) > 0);
 		boolean delete = libLoaderJar.exists() && (update || bestVersion == null);
 		if (delete) {
+			changeClassLoaderUrls(libLoaderJar, true);
 			Files.move(libLoaderJar.toPath(), tempDeleteMe.toPath(), StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
 			delete(tempDeleteMe);
-			changeClassLoaderUrls(libLoaderJar, true);
 			delete(tempDeleteMe);
 		}
 
