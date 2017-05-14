@@ -99,9 +99,9 @@ public class LibLoader implements IFMLLoadingPlugin {
 			}
 		}
 
-		boolean delete = bestVersion == null && libLoaderJar.exists();
 		boolean update = bestVersion != null && (currentVersion == null || bestVersion.compareTo(currentVersion) > 0);
-		if (delete || update) {
+		boolean delete = libLoaderJar.exists() && (update || bestVersion == null);
+		if (delete) {
 			Files.move(libLoaderJar.toPath(), tempDeleteMe.toPath(), StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
 			delete(tempDeleteMe);
 			changeClassLoaderUrls(libLoaderJar, true);
