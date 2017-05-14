@@ -21,6 +21,10 @@ public class LibLoader implements IFMLLoadingPlugin {
 	private static final Logger log = LogManager.getLogger("LibLoader");
 	private static final AtomicBoolean inited = new AtomicBoolean();
 
+	public LibLoader() {
+		init();
+	}
+
 	public static void init() {
 		if (!inited.compareAndSet(false, true))
 			return;
