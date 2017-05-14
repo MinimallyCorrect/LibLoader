@@ -33,7 +33,7 @@ public class LibLoader implements IFMLLoadingPlugin {
 		val mods = new File(System.getProperty("LibLoader.modsFolder", "mods/"));
 		val libraries = new File(System.getProperty("LibLoader.librariesFolder", "libraries/"));
 		val state = new File(libraries, "libloader mod state.obj");
-		val libLoaderJar = new File(mods, System.getProperty("LibLoader.coreModJar", "   LibLoader.jar"));
+		val libLoaderJar = new File(mods, System.getProperty("LibLoader.coreModJar", "# LibLoader.jar"));
 		val tempDeleteMe = new File(libLoaderJar.getParentFile(), libLoaderJar.getName() + "-delete-me.tmp");
 		if (tempDeleteMe.exists() && !tempDeleteMe.delete())
 			tempDeleteMe.deleteOnExit();
