@@ -3,9 +3,9 @@ package me.nallar.libloader;
 import lombok.EqualsAndHashCode;
 import lombok.SneakyThrows;
 import lombok.val;
+import net.minecraft.launchwrapper.LaunchClassLoader;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import sun.misc.URLClassPath;
 
 import java.io.*;
 import java.net.*;
@@ -16,7 +16,6 @@ import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.*;
 import java.util.jar.*;
-import java.util.stream.*;
 import java.util.zip.*;
 
 @SuppressWarnings("WeakerAccess")
@@ -76,22 +75,15 @@ public class LibLoaderChained {
 			libs.sort(Comparator.comparing(File::getPath));
 		}
 
-		val classLoader = (URLClassLoader) LibLoaderChained.class.getClassLoader();
-		val ucpField = URLClassLoader.class.getDeclaredField("ucp");
-		ucpField.setAccessible(true);
-		val oldUcp = (URLClassPath) ucpField.get(classLoader);
-		val urls = new ArrayList<URL>();
-		urls.addAll(libs.stream().map(it -> {
-			try {
-				return it.toURI().toURL();
-			} catch (MalformedURLException e) {
-				throw new IOError(e);
-			}
-		}).collect(Collectors.toList()));
-		urls.addAll(Arrays.asList(classLoader.getURLs()));
-		ucpField.set(classLoader, new URLClassPath(urls.toArray(new URL[0])));
+		if (libs.isEmpty())
+			return;
+
+		val classLoader = (LaunchClassLoader) LibLoaderChained.class.getClassLoader();
+		log.info("LaunchClassLoader URLs: " + (Arrays.asList(classLoader.getURLs())).toString().replace(", ", ",\n"));
+		for (File lib : libs) {
+			classLoader.addURL(lib.toURI().toURL());
+		}
 		saveCachedLibs(cachedLibsFile, libs);
-		oldUcp.closeLoaders();
 	}
 
 	private static List<File> loadCachedLibs(File cachedLibsFile) {
