@@ -123,10 +123,9 @@ public class LibLoader implements IFMLLoadingPlugin {
 				Files.copy(libLoader, libLoaderJar.toPath());
 			}
 			changeClassLoaderUrls(libLoaderJar, false);
-			delete(tempDeleteMe);
 		}
 
-		return delete;
+		return delete && bestVersion == null;
 	}
 
 	@SneakyThrows
