@@ -133,13 +133,15 @@ public class LibLoader implements IFMLLoadingPlugin {
 		val oldUcp = (URLClassPath) ucpField.get(classLoader);
 		val urls = new ArrayList<URL>();
 		val libLoaderUrl = libLoaderJar.toURI().toURL();
-		urls.add(libLoaderUrl);
+		if (!remove)
+			urls.add(libLoaderUrl);
 		for (URL url : classLoader.getURLs()) {
 			if (!urls.contains(url))
 				urls.add(url);
 		}
 		if (remove)
-			urls.remove(libLoaderUrl);
+			if (!urls.remove(libLoaderUrl))
+				log.error("Failed to remove " + libLoaderUrl + " from urls: " + urls);
 		ucpField.set(classLoader, new URLClassPath(urls.toArray(new URL[0])));
 		oldUcp.closeLoaders();
 	}
