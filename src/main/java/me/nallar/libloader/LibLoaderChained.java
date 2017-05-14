@@ -68,7 +68,7 @@ public class LibLoaderChained {
 				newLibs.values().parallelStream().forEach(lib -> searchFiles.add(lib.save(libraries)));
 			}
 
-			log.info("Found libs: " + allLibs);
+			log.info("Found libs:\n" + allLibs.values().toString().replace(", ", "\n"));
 			Map<String, File> hashToFile = new ConcurrentHashMap<>();
 			allLibs.values().parallelStream().forEach(lib -> hashToFile.put(lib.sha512hash, lib.getFile(libraries)));
 			libs = new ArrayList<>(hashToFile.values());
@@ -79,7 +79,10 @@ public class LibLoaderChained {
 			return;
 
 		val classLoader = (LaunchClassLoader) LibLoaderChained.class.getClassLoader();
-		log.info("LaunchClassLoader URLs: " + (Arrays.asList(classLoader.getURLs())).toString().replace(", ", ",\n"));
+		val currentUrls = Arrays.asList(classLoader.getURLs());
+		// expect 2, forge and # LibLoader.
+		if (currentUrls.size() != 2)
+			log.info("Current LaunchClassLoader URLs:\n" + currentUrls.toString().replace(", ", "\n"));
 		for (File lib : libs) {
 			classLoader.addURL(lib.toURI().toURL());
 		}

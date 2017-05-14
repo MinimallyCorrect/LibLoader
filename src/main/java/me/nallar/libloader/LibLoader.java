@@ -35,8 +35,7 @@ public class LibLoader implements IFMLLoadingPlugin {
 		val state = new File(libraries, "libloader mod state.obj");
 		val libLoaderJar = new File(mods, System.getProperty("LibLoader.coreModJar", "# LibLoader.jar"));
 		val tempDeleteMe = new File(libLoaderJar.getParentFile(), libLoaderJar.getName() + "-delete-me.tmp");
-		if (tempDeleteMe.exists() && !tempDeleteMe.delete())
-			tempDeleteMe.deleteOnExit();
+		delete(tempDeleteMe);
 
 		List<FileState> lastStates = LibLoader.readFromFile(state);
 		List<FileState> newStates = new ArrayList<>();
@@ -106,10 +105,15 @@ public class LibLoader implements IFMLLoadingPlugin {
 
 		boolean update = bestVersion != null && (currentVersion == null || bestVersion.compareTo(currentVersion) > 0);
 		boolean delete = libLoaderJar.exists() && (update || bestVersion == null);
+
+		if (delete || update) {
+			log.info("LibLoader change: \ncurrentVersion " + currentVersion + "\nbestVersion " + bestVersion
+				+ "\nbestFile " + bestFile + "\ndelete " + delete + "\nupdate " + update);
+		}
+
 		if (delete) {
 			changeClassLoaderUrls(libLoaderJar, true);
 			Files.move(libLoaderJar.toPath(), tempDeleteMe.toPath(), StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
-			delete(tempDeleteMe);
 			delete(tempDeleteMe);
 		}
 
@@ -133,15 +137,14 @@ public class LibLoader implements IFMLLoadingPlugin {
 		val oldUcp = (URLClassPath) ucpField.get(classLoader);
 		val urls = new ArrayList<URL>();
 		val libLoaderUrl = libLoaderJar.toURI().toURL();
-		if (!remove)
-			urls.add(libLoaderUrl);
 		for (URL url : classLoader.getURLs()) {
 			if (!urls.contains(url))
 				urls.add(url);
 		}
-		if (remove)
-			if (!urls.remove(libLoaderUrl))
-				log.error("Failed to remove " + libLoaderUrl + " from urls: " + urls);
+		if (!urls.remove(libLoaderUrl) && remove)
+			log.error("Failed to remove " + libLoaderUrl + " from urls: " + urls);
+		if (!remove)
+			urls.add(Math.min(1, urls.size()), libLoaderUrl);
 		ucpField.set(classLoader, new URLClassPath(urls.toArray(new URL[0])));
 		oldUcp.closeLoaders();
 	}
