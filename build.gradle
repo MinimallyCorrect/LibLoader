@@ -7,10 +7,10 @@ group = 'me.nallar.libloader'
 version = '0.1-SNAPSHOT'
 
 // Extended project information
-ext.projectName = 'LibLoader'
+ext.projectName = 'LibLoaderChained'
 ext.inceptionYear = '2017'
 ext.packaging = 'jar'
-ext.url = 'https://github.com/nallar/LibLoader'
+ext.url = 'https://github.com/nallar/LibLoaderChained'
 ext.description = 'Lib Loader'
 ext.organization = 'nallar.me'
 
@@ -46,9 +46,29 @@ tasks.withType(Jar) {
 		"Created-By": System.properties['java.vm.version'] + " (" + System.properties['java.vm.vendor'] + ")",
 		"Implementation-Title": name,
 		"Implementation-Version": version + "+" + ciSystem + "-b" + buildNumber + ".git-" + commit,
-		"Implementation-Vendor": url,
-		"FMLCorePlugin": "me.nallar.modpatcher.coremod.CoreMod"
+		"Implementation-Vendor": url
 	)
+}
+
+task innerJar(type: Jar, dependsOn: classes)
+
+innerJar {
+	classifier 'inner'
+	from sourceSets.main.output
+	exclude 'net'
+	exclude 'generated'
+	manifest.mainAttributes(
+		"FMLCorePlugin": "me.nallar.libloader.LibLoader"
+	)
+}
+
+jar.dependsOn(innerJar)
+
+jar {
+	exclude 'net'
+	exclude 'me/nallar/libloader/LibLoaderChained*'
+	exclude 'generated'
+	from innerJar.archivePath
 }
 
 task wrapper(type: Wrapper) {

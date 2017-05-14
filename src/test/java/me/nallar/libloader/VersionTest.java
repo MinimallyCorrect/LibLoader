@@ -6,7 +6,7 @@ import org.junit.Test;
 public class VersionTest {
 	@Test
 	public void testVersion() {
-		Assert.assertTrue(LibLoader.Version.of("1").compareTo(LibLoader.Version.of("0.1")) > 0);
-		Assert.assertTrue(LibLoader.Version.of("1").compareTo(LibLoader.Version.of("1-SNAPSHOT")) > 0);
+		Assert.assertTrue(new LibLoaderChained.Version("1").compareTo(new LibLoaderChained.Version("0.1")) > 0);
+		Assert.assertTrue(new LibLoaderChained.Version("1").compareTo(new LibLoaderChained.Version("1-SNAPSHOT")) > 0);
 	}
 }
