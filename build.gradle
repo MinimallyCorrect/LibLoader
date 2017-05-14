@@ -14,6 +14,24 @@ ext.url = 'https://github.com/nallar/LibLoaderChained'
 ext.description = 'Lib Loader'
 ext.organization = 'nallar.me'
 
+String calcVersion() {
+	def vs = version.toString()
+	def snapshot = false
+	if (vs.endsWith("-SNAPSHOT")) {
+		snapshot = true
+		vs = vs.replace("-SNAPSHOT", "")
+	}
+	vs = vs + '.' + (System.currentTimeMillis()/100000.0)
+	if (snapshot) {
+		vs = vs + "-SNAPSHOT"
+	}
+	return vs
+}
+
+// version file
+def versionFile = file(buildDir.toString() + '/LibLoader.version')
+versionFile.text = calcVersion()
+
 // ci information
 ext.buildNumber = System.getenv("BUILD_NUMBER") ?: 0
 ext.ciSystem = System.getenv("JENKINS_URL") ? 'Jenkins' : 'unknown'
@@ -53,10 +71,12 @@ tasks.withType(Jar) {
 task innerJar(type: Jar, dependsOn: classes)
 
 innerJar {
+	inputs.property("versionfile", versionFile.text)
 	classifier 'inner'
 	from sourceSets.main.output
 	exclude 'net'
 	exclude 'generated'
+	from versionFile
 	manifest.mainAttributes(
 		"FMLCorePlugin": "me.nallar.libloader.LibLoader"
 	)
@@ -65,10 +85,13 @@ innerJar {
 jar.dependsOn(innerJar)
 
 jar {
+	inputs.property("versionfile", versionFile.text)
 	exclude 'net'
 	exclude 'me/nallar/libloader/LibLoaderChained*'
 	exclude 'generated'
+	from versionFile
 	from innerJar.archivePath
+	rename (file(innerJar.archivePath).name, "LibLoader.jar")
 }
 
 task wrapper(type: Wrapper) {
