@@ -1,4 +1,4 @@
-package me.nallar.libloader;
+package org.minimallycorrect.libloader;
 
 import lombok.EqualsAndHashCode;
 import lombok.SneakyThrows;

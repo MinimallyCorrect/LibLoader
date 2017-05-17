@@ -3,16 +3,14 @@ plugins {
 	id 'maven'
 }
 
-group = 'me.nallar.libloader'
+group = 'org.minimallycorrect.libloader'
 version = '0.1-SNAPSHOT'
 
-// Extended project information
-ext.projectName = 'LibLoaderChained'
 ext.inceptionYear = '2017'
 ext.packaging = 'jar'
-ext.url = 'https://github.com/nallar/LibLoaderChained'
+ext.url = 'https://github.com/MinimallyCorrect/LibLoader'
 ext.description = 'Lib Loader'
-ext.organization = 'nallar.me'
+ext.organization = 'minimallycorrect.org'
 
 String calcVersion() {
 	def vs = version.toString()
@@ -80,7 +78,7 @@ innerJar {
 	exclude 'generated'
 	from versionFile
 	manifest.mainAttributes(
-		"FMLCorePlugin": "me.nallar.libloader.LibLoader"
+		"FMLCorePlugin": "org.minimallycorrect.LibLoader"
 	)
 }
 
@@ -89,7 +87,7 @@ jar.dependsOn(innerJar)
 jar {
 	inputs.property("versionfile", versionFile.text)
 	exclude 'net'
-	exclude 'me/nallar/libloader/LibLoaderChained*'
+	exclude 'org/minimallycorrect/libloader/LibLoaderChained*'
 	exclude 'generated'
 	from versionFile
 	from innerJar.archivePath
