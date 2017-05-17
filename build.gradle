@@ -78,7 +78,7 @@ innerJar {
 	exclude 'generated'
 	from versionFile
 	manifest.mainAttributes(
-		"FMLCorePlugin": "org.minimallycorrect.LibLoader"
+		"FMLCorePlugin": "org.minimallycorrect.libloader.LibLoader"
 	)
 }
 
