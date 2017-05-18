@@ -28,6 +28,7 @@ String calcVersion() {
 
 // version file
 def versionFile = file(buildDir.toString() + '/LibLoader.version')
+versionFile.getParentFile().mkdirs()
 versionFile.text = calcVersion()
 
 // ci information
