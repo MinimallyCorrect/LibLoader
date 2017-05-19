@@ -209,8 +209,12 @@ public class LibLoaderChained {
 		}
 
 		String getPath() {
-			return group.replace('.', '/') + '/' + name + '-' + version + '-' + sha512hash + '/'
-				+ name + '-' + version + '-' + (classifier == null ? "" : '-' + classifier) + ".jar";
+			if (version.suffixInt() < 0)
+				return group.replace('.', '/') + '/' + name + '-' + version + '-'
+					+ sha512hash.substring(0, 16) + '/' + name + '-' + version + '-'
+					+ (classifier == null ? "" : '-' + classifier) + ".jar";
+			return group.replace('.', '/') + '/' + name + '-' + version + '/' + name + '-' + version
+				+ '-' + (classifier == null ? "" : '-' + classifier) + ".jar";
 		}
 
 		String getKey() {
